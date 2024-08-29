@@ -4,12 +4,6 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
-// fn handle_client(mut stream: TcpStream) {
-//     let mut buf = [0; 512];
-//     stream.read(&mut buf).unwrap();
-//     stream.write(b"+PONG\r\n").unwrap();
-// }
-
 fn main() {
     println!("Opening TCP server . . .");
     // Open TCP connection at 6379
@@ -19,14 +13,23 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => {
-                println!("Accepted new connection!");
-                // handle_client(stream);
                 let mut buf = [0; 512];
-                stream.read(&mut buf).unwrap();
-                stream.write(b"+PONG\r\n").unwrap();
+                loop {
+                    let read_count = stream.read(&mut buf).unwrap();
+                    if read_count == 0 {
+                        break;
+                    }
+
+                    let request = std::str::from_utf8(&buf[..read_count]).unwrap();
+                    for line in request.lines() {
+                        if line == "PING" {
+                            stream.write(b"+PONG\r\n").unwrap();
+                        }
+                    }
+                }
             }
             Err(e) => {
-                println!("error: {}", e);
+                println!("Error: {}", e);
             }
         }
     }
