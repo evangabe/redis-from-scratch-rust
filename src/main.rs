@@ -1,7 +1,9 @@
+mod cmds;
 mod resp;
-
 use anyhow::{Ok, Result};
 use resp::RespValue;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -12,11 +14,14 @@ async fn main() {
     // Open TCP connection at 6379
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
 
+    let storage = Arc::new(Mutex::new(HashMap::new()));
+
     // Await packets
     loop {
         let (stream, _) = listener.accept().await.unwrap();
+        let storage = Arc::clone(&storage);
         tokio::spawn(async move {
-            handle_connection(stream).await;
+            handle_connection(stream, storage).await;
         });
     }
 }
@@ -50,17 +55,29 @@ impl RespConnection {
     }
 }
 
-async fn handle_connection(stream: TcpStream) {
+async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<HashMap<String, String>>>) {
     let mut connection = RespConnection::new(stream);
+
     loop {
         let value = connection.read().await.unwrap();
-        println!("Got value {:?}", value);
 
         let response = if let Some(v) = value {
             let (cmd, args) = extract_command(v).unwrap();
             match cmd.as_str() {
-                "ping" => RespValue::Text("PONG".to_string()),
-                "echo" => args.first().unwrap().clone(),
+                "ping" => cmds::ping(),
+                "echo" => args[0].clone(),
+                "set" => {
+                    let mut storage = storage.lock().unwrap();
+                    cmds::set(
+                        &mut storage,
+                        unpack_bulk_str(args[0].clone()).unwrap(),
+                        unpack_bulk_str(args[1].clone()).unwrap(),
+                    )
+                }
+                "get" => {
+                    let storage = storage.lock().unwrap();
+                    cmds::get(&storage, unpack_bulk_str(args[0].clone()).unwrap())
+                }
                 c => panic!("Cannot handle command {}", c),
             }
         } else {

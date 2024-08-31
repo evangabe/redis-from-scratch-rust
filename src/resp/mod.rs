@@ -7,6 +7,7 @@ pub enum RespValue {
     Integer(i64),
     BulkString(String),
     Array(Vec<RespValue>),
+    Null,
 }
 
 impl RespValue {
@@ -15,18 +16,20 @@ impl RespValue {
             RespValue::Text(s) => format!("+{}\r\n", s),
             RespValue::Integer(i) => format!("-{}\r\n", i),
             RespValue::BulkString(bs) => format!("${}\r\n{}\r\n", bs.chars().count(), bs),
+            RespValue::Null => format!("$-1\r\n"),
             _ => panic!("Unsupported type for serialization!"),
         }
     }
 }
 
 pub fn parse(buffer: &[u8]) -> Result<(RespValue, usize)> {
+    println!("[RESP] Received: {}", String::from_utf8(buffer.to_vec())?);
     match buffer[0] as char {
         '*' => parse_array(buffer),
         '$' => parse_bulk_string(buffer),
         '+' => parse_text(buffer),
         '-' => parse_integer(buffer),
-        _ => Err(anyhow::anyhow!("Invalid RESP identifier".to_string())),
+        c => Err(anyhow::anyhow!("Invalid RESP identifier: {}", c)),
     }
 }
 
@@ -60,6 +63,10 @@ fn parse_array(buffer: &[u8]) -> Result<(RespValue, usize)> {
 fn parse_bulk_string(buffer: &[u8]) -> Result<(RespValue, usize)> {
     let (str_len, bytes_consumed) = utils::split_at_crlf(&buffer)?;
     let end_of_str = bytes_consumed + str_len as usize;
+
+    if str_len == -1 {
+        return Ok((RespValue::Null, end_of_str + 2));
+    }
 
     Ok((
         RespValue::BulkString(String::from_utf8(
