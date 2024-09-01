@@ -1,12 +1,14 @@
 mod cmds;
+mod db;
 mod resp;
 use anyhow::{Ok, Result};
+use atoi::atoi;
+use db::Db;
 use resp::RespValue;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    time::Duration,
 };
 
 #[tokio::main]
@@ -14,14 +16,14 @@ async fn main() {
     // Open TCP connection at 6379
     let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
 
-    let storage = Arc::new(Mutex::new(HashMap::new()));
+    let db_holder = db::DbDropGuard::new();
 
     // Await packets
     loop {
         let (stream, _) = listener.accept().await.unwrap();
-        let storage = Arc::clone(&storage);
+        let storage = db_holder.db();
         tokio::spawn(async move {
-            handle_connection(stream, storage).await;
+            handle_connection(stream, &storage).await;
         });
     }
 }
@@ -55,7 +57,7 @@ impl RespConnection {
     }
 }
 
-async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<HashMap<String, String>>>) {
+async fn handle_connection(stream: TcpStream, storage: &Db) {
     let mut connection = RespConnection::new(stream);
 
     loop {
@@ -67,17 +69,15 @@ async fn handle_connection(stream: TcpStream, storage: Arc<Mutex<HashMap<String,
                 "ping" => cmds::ping(),
                 "echo" => args[0].clone(),
                 "set" => {
-                    let mut storage = storage.lock().unwrap();
-                    cmds::set(
-                        &mut storage,
-                        unpack_bulk_str(args[0].clone()).unwrap(),
-                        unpack_bulk_str(args[1].clone()).unwrap(),
-                    )
+                    let key = unpack_bulk_str(args[0].clone()).unwrap();
+                    let value = unpack_bulk_str(args[1].clone()).unwrap();
+                    let mut expiry = None;
+                    if args.len() == 4 {
+                        expiry = Some(Duration::from_millis(unpack_u64(args[3].clone()).unwrap()));
+                    }
+                    cmds::set(&storage, key, value, expiry)
                 }
-                "get" => {
-                    let storage = storage.lock().unwrap();
-                    cmds::get(&storage, unpack_bulk_str(args[0].clone()).unwrap())
-                }
+                "get" => cmds::get(&storage, unpack_bulk_str(args[0].clone()).unwrap()),
                 c => panic!("Cannot handle command {}", c),
             }
         } else {
@@ -103,4 +103,9 @@ fn unpack_bulk_str(value: RespValue) -> Result<String> {
         RespValue::BulkString(bs) => Ok(bs.to_lowercase()),
         _ => Err(anyhow::anyhow!("Expected bulk string".to_string())),
     }
+}
+
+fn unpack_u64(value: RespValue) -> Result<u64> {
+    let str = unpack_bulk_str(value).unwrap();
+    Ok(atoi::<u64>(&str.as_bytes()).unwrap())
 }

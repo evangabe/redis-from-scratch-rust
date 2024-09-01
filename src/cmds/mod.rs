@@ -1,19 +1,15 @@
+use crate::db::Db;
 use crate::resp::RespValue;
-use std::collections::HashMap;
+use tokio::time::Duration;
 
 // SET - Insert a new key-value pair into the hashmap
-pub fn set(storage: &mut HashMap<String, String>, key: String, value: String) -> RespValue {
-    storage.insert(key, value);
-
-    for (key, value) in storage {
-        println!("{}: {}", key, value)
-    }
-
+pub fn set(storage: &Db, key: String, value: String, expiry: Option<Duration>) -> RespValue {
+    storage.set(key, value, expiry);
     RespValue::Text("OK".to_string())
 }
 
 // GET - Get value from hashmap (if exists) or return null given a key
-pub fn get(storage: &HashMap<String, String>, key: String) -> RespValue {
+pub fn get(storage: &Db, key: String) -> RespValue {
     match storage.get(&key) {
         Some(v) => {
             println!("({}, {})", key, v);
