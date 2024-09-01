@@ -1,6 +1,6 @@
 [![progress-banner](https://backend.codecrafters.io/progress/redis/f196d1a1-22ec-4233-b95d-74a6a087cbc6)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-In this code challenge, over 72 hours I will build a Redis clone in the Rust programming language.
+In this code challenge, over **72 hours** I will build a [Redis](https://redis.io/) clone in the Rust programming language.
 The best way to learn a new language, IMHO, is through transfer learning.
 
 My hypothesis stems from the machine learning concept called "Domain Adaptation" where generalizability (learning) in one domain (i.e. building Redis in Python) can accelerate convergence to generalizability in another domain (i.e. building Redis in Rust).
