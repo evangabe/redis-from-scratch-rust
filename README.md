@@ -7,6 +7,28 @@ My hypothesis stems from the machine learning concept called "Domain Adaptation"
 
 By the end of this challenge, my goal is to have a Redis server clone that can stand in for the `redis-stack-server` instance and receive commands like `PING`, `ECHO`, `SET`, and `GET`.
 
+### How to use this repo
+
+If you would like to expand on what I've built feel free to clone this repository.
+
+To start the Redis Server, you'll need execution privileges on the `./start_redis_server.sh` shell script.
+Open two (or more) terminals, in one, build and run the **Redis Server** through the provided shell script.
+
+```console
+$ ./start_redis_server.sh
+```
+
+In the other terminal(s), you can send client commands with the `redis-cli` as follows:
+
+```
+$ redis-cli PING
++PONG
+$ redis-cli SET foo bar
+"Ok"
+$ redis-cli GET foo
+"bar"
+```
+
 # First stage - TCP Connections
 Here's my gameplan for getting my **Redis Server Clone** up-and-running:
 
