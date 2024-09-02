@@ -47,20 +47,22 @@ pub async fn handle_connection(stream: TcpStream, storage: &Db) {
             match cmd.as_str() {
                 "ping" => cmds::ping(),
                 "echo" => args[0].clone(),
-                "set" => {
-                    let mut expiry = None;
-                    if args.len() == 4 {
-                        expiry = Some(Duration::from_millis(unpack_u64(args[3].clone()).unwrap()));
-                    }
-                    cmds::set(
-                        &storage,
-                        unpack_bulk_str(args[0].clone()).unwrap(),
-                        unpack_bulk_str(args[1].clone()).unwrap(),
-                        expiry,
-                    )
-                }
-                "get" => cmds::get(&storage, unpack_bulk_str(args[0].clone()).unwrap()),
-                "list" => cmds::list(&storage),
+                "set" => cmds::set(
+                    &storage,
+                    unpack_bulk_str(args.get(0).unwrap().clone()).unwrap(),
+                    unpack_bulk_str(args.get(1).unwrap().clone()).unwrap(),
+                    args.get(3)
+                        .map(|px| Duration::from_millis(unpack_u64(px.clone()).unwrap())),
+                ),
+                "get" => cmds::get(
+                    &storage,
+                    unpack_bulk_str(args.get(0).unwrap().clone()).unwrap(),
+                ),
+                "list" => cmds::list(
+                    &storage,
+                    args.get(0)
+                        .map(|limit| unpack_u64(limit.clone()).unwrap() as usize),
+                ),
                 c => panic!("Cannot handle command {}", c),
             }
         } else {

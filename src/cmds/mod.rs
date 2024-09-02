@@ -21,9 +21,9 @@ pub fn ping() -> RespValue {
     RespValue::Text("PONG".to_string())
 }
 
-pub fn list(storage: &Db) -> RespValue {
+pub fn list(storage: &Db, limit: Option<usize>) -> RespValue {
     let mut resp_entries: Vec<RespValue> = Vec::new();
-    for val in storage.list().iter() {
+    for val in storage.list(limit).iter() {
         resp_entries.push(RespValue::BulkString(val.to_string()));
     }
     RespValue::Array(resp_entries)

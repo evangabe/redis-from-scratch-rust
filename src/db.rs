@@ -67,10 +67,11 @@ impl Db {
         state.entries.get(key).map(|entry| entry.data.clone())
     }
 
-    pub(crate) fn list(&self) -> Vec<String> {
+    pub(crate) fn list(&self, limit: Option<usize>) -> Vec<String> {
         let state = self.shared.state.lock().unwrap();
         let mut vec: Vec<String> = Vec::new();
-        for (key, entry) in state.entries.iter() {
+        let limit = limit.unwrap_or(10);
+        for (key, entry) in state.entries.iter().take(limit) {
             vec.push(format!("{}: {}", key, entry.data));
         }
         vec
