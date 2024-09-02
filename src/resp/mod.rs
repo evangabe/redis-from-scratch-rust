@@ -14,21 +14,25 @@ impl RespValue {
     pub fn serializer(&mut self) -> String {
         match self {
             RespValue::Text(s) => format!("+{}\r\n", s),
-            RespValue::Integer(i) => format!("-{}\r\n", i),
+            RespValue::Integer(i) => format!(":{}\r\n", i),
             RespValue::BulkString(bs) => format!("${}\r\n{}\r\n", bs.chars().count(), bs),
             RespValue::Null => format!("$-1\r\n"),
-            _ => panic!("Unsupported type for serialization!"),
+            RespValue::Array(v) => {
+                let formatted_values: Vec<String> =
+                    v.iter_mut().map(|value| value.serializer()).collect();
+                let s = format!("*{}\r\n{}", v.len(), formatted_values.join(""));
+                s
+            }
         }
     }
 }
 
 pub fn parse(buffer: &[u8]) -> Result<(RespValue, usize)> {
-    println!("[RESP] Received: {}", String::from_utf8(buffer.to_vec())?);
     match buffer[0] as char {
         '*' => parse_array(buffer),
         '$' => parse_bulk_string(buffer),
         '+' => parse_text(buffer),
-        '-' => parse_integer(buffer),
+        ':' => parse_integer(buffer),
         c => Err(anyhow::anyhow!("Invalid RESP identifier: {}", c)),
     }
 }

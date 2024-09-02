@@ -2,7 +2,7 @@
 name = "redis-starter-rust"
 version = "0.1.0"
 authors = ["Evan Gabrielson <ejgabrie@usc.edu>"]
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 atoi = "2.0.0"                                      # integer conversion

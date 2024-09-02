@@ -11,10 +11,7 @@ pub fn set(storage: &Db, key: String, value: String, expiry: Option<Duration>) -
 // GET - Get value from hashmap (if exists) or return null given a key
 pub fn get(storage: &Db, key: String) -> RespValue {
     match storage.get(&key) {
-        Some(v) => {
-            println!("({}, {})", key, v);
-            RespValue::BulkString(v.clone())
-        }
+        Some(v) => RespValue::BulkString(v.clone()),
         None => RespValue::Null,
     }
 }
@@ -22,4 +19,12 @@ pub fn get(storage: &Db, key: String) -> RespValue {
 // PING - Return "PONG"
 pub fn ping() -> RespValue {
     RespValue::Text("PONG".to_string())
+}
+
+pub fn list(storage: &Db) -> RespValue {
+    let mut resp_entries: Vec<RespValue> = Vec::new();
+    for val in storage.list().iter() {
+        resp_entries.push(RespValue::BulkString(val.to_string()));
+    }
+    RespValue::Array(resp_entries)
 }
